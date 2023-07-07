@@ -1,10 +1,6 @@
 import { SuiNetwork, SuiObjectProcessorTemplate } from '@sentio/sdk/sui';
 
-import {
-  DEX_PACKAGE_ID,
-  POOLS_TVL_BLACK_LIST,
-  PROJECT_NAME,
-} from './constants.js';
+import { DEX_PACKAGE_ID, POOLS_TVL_BLACK_LIST } from './constants.js';
 import {
   calculateAmountsInUSD,
   getCoinInfo,
@@ -92,13 +88,13 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
         ? { bridge: coinInfoY.bridge as string }
         : {};
 
-      tvlByCoin.record(ctx, valueX, {
+      tvlByCoin.record(ctx, totalValueX, {
         coin: coinInfoX.symbol,
         type: coinInfoX.type,
         ...bridgeX,
       });
 
-      tvlByCoin.record(ctx, valueY, {
+      tvlByCoin.record(ctx, totalValueY, {
         coin: coinInfoY.symbol,
         type: coinInfoY.type,
         ...bridgeY,
@@ -353,7 +349,12 @@ core
       message: `Swapped ${coinXAmount} ${coinInfoX.symbol} ->  ${coinYAmount} ${coinInfoY.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
 
-    await recordTradingVolume({ ctx, valueX, valueY, poolInfo });
+    await recordTradingVolume({
+      ctx,
+      valueX: totalXValue,
+      valueY: totalYValue,
+      poolInfo,
+    });
   })
   .onEventSwapTokenY(async (event, ctx) => {
     ctx.meter.Counter('event_swap').add(1);
@@ -418,5 +419,10 @@ core
       message: `Swapped ${coinYAmount} ${coinInfoY.symbol} ->  ${coinXAmount} ${coinInfoX.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
 
-    await recordTradingVolume({ ctx, valueX, valueY, poolInfo });
+    await recordTradingVolume({
+      ctx,
+      valueX: totalXValue,
+      valueY: totalYValue,
+      poolInfo,
+    });
   });

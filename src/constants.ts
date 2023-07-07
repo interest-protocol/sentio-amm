@@ -1,8 +1,6 @@
 export const DEX_PACKAGE_ID =
   '0x5c45d10c26c5fb53bfaff819666da6bc7053d2190dfa29fec311cc666ff1f4b0';
 
-export const PROJECT_NAME = 'interest-protocol-dex';
-
 export const POOLS_TVL_BLACK_LIST = [
   // SUI/AIFrens
   '0x747bd9685c9d9325fe536bdde891a2fdf7ef742ceb3aaacd972a3f0ded1050c2',
