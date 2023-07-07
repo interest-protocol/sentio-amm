@@ -11,8 +11,11 @@ import {
   getCoinsFromPoolType,
   getPoolBalances,
   parsePoolEventsTypeArg,
+  recordTradingVolume,
   registerPool,
   removeDecimals,
+  tvlByCoin,
+  tvlByPool,
 } from './lib/index.js';
 import {
   AddLiquidityEventDecodedData,
@@ -67,22 +70,6 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
         coinInfo: coinInfoY,
       });
 
-      ctx.meter.Gauge('reservesX').record(coinXAmount, {
-        poolName: poolInfo.name,
-        poolId: poolInfo.poolId,
-        symbol: coinInfoX.symbol,
-        coinType: coinInfoX.type,
-        project: PROJECT_NAME,
-      });
-
-      ctx.meter.Gauge('reservesY').record(coinYAmount, {
-        poolName: poolInfo.name,
-        poolId: poolInfo.poolId,
-        symbol: coinInfoY.symbol,
-        coinType: coinInfoY.type,
-        project: PROJECT_NAME,
-      });
-
       const [valueX, valueY] = await calculateAmountsInUSD({
         poolId,
         date: ctx.timestamp,
@@ -93,10 +80,28 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
       const totalValueX = valueX ? coinXAmount * valueX : coinYAmount * valueY;
       const totalValueY = valueY ? coinYAmount * valueY : coinXAmount * valueX;
 
-      ctx.meter.Gauge('TVL').record(totalValueX + totalValueY, {
-        poolName: poolInfo.name,
+      tvlByPool.record(ctx, totalValueX + totalValueY, {
+        pair: poolInfo.name,
         poolId: poolInfo.poolId,
-        project: PROJECT_NAME,
+      });
+
+      const bridgeX: { bridge: string } | object = coinInfoX.bridge
+        ? { bridge: coinInfoX.bridge as string }
+        : {};
+      const bridgeY: { bridge: string } | object = coinInfoY.bridge
+        ? { bridge: coinInfoY.bridge as string }
+        : {};
+
+      tvlByCoin.record(ctx, valueX, {
+        coin: coinInfoX.symbol,
+        type: coinInfoX.type,
+        ...bridgeX,
+      });
+
+      tvlByCoin.record(ctx, valueY, {
+        coin: coinInfoY.symbol,
+        type: coinInfoY.type,
+        ...bridgeY,
       });
     } catch {
       console.log('Failed to get data for', ctx.objectId);
@@ -115,10 +120,9 @@ core
     startCheckpoint: 1500000n,
   })
   .onEventPoolCreated(async (event, ctx) => {
-    ctx.meter.Counter('createPoolCounter').add(1, { project: PROJECT_NAME });
+    ctx.meter.Counter('num_pools').add(1);
 
-    const { sender, id, value_x, value_y, shares } =
-      event.data_decoded as PoolCreatedEventDecodedData;
+    const { sender, id } = event.data_decoded as PoolCreatedEventDecodedData;
 
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
       event.type_arguments,
@@ -132,18 +136,11 @@ core
       poolId: id,
     });
 
-    ctx.eventLogger.emit('PoolCreatedEvent', {
+    ctx.eventLogger.emit('Create Pair', {
       distinctId: sender,
+      pair: poolInfo.name,
       poolId: id,
-      sender,
-      valueX: value_x,
-      valueY: value_y,
-      project: PROJECT_NAME,
-      shares,
-      coinXType: poolInfo.coinXType,
-      coinYType: poolInfo.coinYType,
-      isStable: poolInfo.isStable,
-      name: poolInfo.name,
+      message: `Created ${poolInfo.name}`,
     });
 
     template.bind(
@@ -154,14 +151,13 @@ core
     );
   })
   .onEventAddLiquidity(async (event, ctx) => {
-    ctx.meter.Counter('addLiquidityCounter').add(1, { project: PROJECT_NAME });
+    ctx.meter.Counter('event_liquidity_add').add(1);
 
     const {
       sender,
       id: poolId,
       coin_x_amount,
       coin_y_amount,
-      shares_minted,
     } = event.data_decoded as AddLiquidityEventDecodedData;
 
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
@@ -211,35 +207,25 @@ core
 
     const totalUSDValueAdded = totalXValue + totalYValue;
 
-    ctx.eventLogger.emit('AddLiquidityEvent', {
+    ctx.eventLogger.emit('Add Liquidity', {
       distinctId: sender,
       poolId: poolId,
-      sender,
-      valueX: coin_x_amount,
-      valueY: coin_y_amount,
-      project: PROJECT_NAME,
-      shares: shares_minted,
-      coinXType: poolInfo.coinXType,
-      coinYType: poolInfo.coinYType,
-      isStable: poolInfo.isStable,
-      name: poolInfo.name,
+      pair: poolInfo.name,
+      value: totalUSDValueAdded,
       message: `Add USD$${totalUSDValueAdded} Liquidity in ${poolInfo.name}`,
     });
 
-    ctx.meter.Gauge('addLiquidityGauge').record(totalUSDValueAdded, {
-      poolName: poolInfo.name,
+    ctx.meter.Gauge('add_liquidity').record(totalUSDValueAdded, {
+      pair: poolInfo.name,
       poolId: poolInfo.poolId,
     });
   })
   .onEventRemoveLiquidity(async (event, ctx) => {
-    ctx.meter
-      .Counter('removeLiquidityCounter')
-      .add(1, { project: PROJECT_NAME });
+    ctx.meter.Counter('event_liquidity_removed').add(1);
 
     const {
       sender,
       id: poolId,
-      shares_destroyed,
       coin_y_out,
       coin_x_out,
     } = event.data_decoded as RemoveLiquidityEventDecodedData;
@@ -291,28 +277,21 @@ core
 
     const totalUSDValueAdded = totalXValue + totalYValue;
 
-    ctx.eventLogger.emit('RemoveLiquidityEvent', {
+    ctx.eventLogger.emit('Remove Liquidity', {
       distinctId: sender,
       poolId: poolId,
-      sender,
-      valueX: coin_x_out,
-      valueY: coin_y_out,
-      project: PROJECT_NAME,
-      shares: shares_destroyed,
-      coinXType: poolInfo.coinXType,
-      coinYType: poolInfo.coinYType,
-      isStable: poolInfo.isStable,
-      name: poolInfo.name,
+      value: totalUSDValueAdded,
+      pair: poolInfo.name,
       message: `Remove $${totalUSDValueAdded} Liquidity in ${poolInfo.name}`,
     });
 
-    ctx.meter.Gauge('removeLiquidityGauge').record(totalUSDValueAdded, {
+    ctx.meter.Gauge('remove_liquidity').record(totalUSDValueAdded, {
       poolName: poolInfo.name,
       poolId: poolInfo.poolId,
     });
   })
   .onEventSwapTokenX(async (event, ctx) => {
-    ctx.meter.Counter('swapCounter').add(1, { project: PROJECT_NAME });
+    ctx.meter.Counter('event_swap').add(1);
 
     const {
       id: poolId,
@@ -366,34 +345,18 @@ core
 
     const swappedValue = totalXValue > totalYValue ? totalXValue : totalYValue;
 
-    ctx.eventLogger.emit('SwapEvent', {
+    ctx.eventLogger.emit('Swap', {
       distinctId: sender,
       poolId: poolId,
-      sender,
-      valueIn: coin_x_in,
-      valueOut: coin_y_out,
-      valueUSD: swappedValue,
-      project: PROJECT_NAME,
-      coinTypeIn: poolInfo.coinXType,
-      coinYTypeOut: poolInfo.coinYType,
-      isStable: poolInfo.isStable,
-      name: poolInfo.name,
+      value: swappedValue,
+      pair: poolInfo.name,
       message: `Swapped ${coinXAmount} ${coinInfoX.symbol} ->  ${coinYAmount} ${coinInfoY.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
 
-    ctx.meter.Gauge('tradingVolumeGauge').record(swappedValue, {
-      poolName: poolInfo.name,
-      poolId: poolInfo.poolId,
-      project: PROJECT_NAME,
-    });
-    ctx.meter.Counter('tradingVolumeCounter').add(swappedValue, {
-      poolName: poolInfo.name,
-      poolId: poolInfo.poolId,
-      project: PROJECT_NAME,
-    });
+    await recordTradingVolume({ ctx, valueX, valueY, poolInfo });
   })
   .onEventSwapTokenY(async (event, ctx) => {
-    ctx.meter.Counter('swapCounter').add(1, { project: PROJECT_NAME });
+    ctx.meter.Counter('event_swap').add(1);
 
     const {
       id: poolId,
@@ -447,29 +410,13 @@ core
 
     const swappedValue = totalXValue > totalYValue ? totalXValue : totalYValue;
 
-    ctx.eventLogger.emit('SwapEvent', {
+    ctx.eventLogger.emit('Swap', {
       distinctId: sender,
       poolId: poolId,
-      sender,
-      valueIn: coin_y_in,
-      valueOut: coin_x_out,
-      valueUSD: swappedValue,
-      project: PROJECT_NAME,
-      coinTypeIn: poolInfo.coinYType,
-      coinTypeOut: poolInfo.coinXType,
-      isStable: poolInfo.isStable,
-      name: poolInfo.name,
+      value: swappedValue,
+      pair: poolInfo.name,
       message: `Swapped ${coinYAmount} ${coinInfoY.symbol} ->  ${coinXAmount} ${coinInfoX.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
 
-    ctx.meter.Gauge('tradingVolumeGauge').record(swappedValue, {
-      poolName: poolInfo.name,
-      poolId: poolInfo.poolId,
-      project: PROJECT_NAME,
-    });
-    ctx.meter.Counter('tradingVolumeCounter').add(swappedValue, {
-      poolName: poolInfo.name,
-      poolId: poolInfo.poolId,
-      project: PROJECT_NAME,
-    });
+    await recordTradingVolume({ ctx, valueX, valueY, poolInfo });
   });

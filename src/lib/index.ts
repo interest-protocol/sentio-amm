@@ -1,7 +1,9 @@
 import { Coin, CoinMetadata, SuiObjectResponse } from '@mysten/sui.js';
+import { Gauge } from '@sentio/sdk';
 import { SuiNetwork } from '@sentio/sdk/sui';
 import { getPriceByType } from '@sentio/sdk/utils';
 
+import { COINS_MAP as coinsMap } from './coins.js';
 import {
   CalculateAmountsInUSD,
   CoinInfo,
@@ -9,14 +11,29 @@ import {
   GetCoinInfoArgs,
   GetPoolBalancesArgs,
   PoolInfo,
+  RecordTradingVolumeArgs,
   RegisterPoolArgs,
   RemoveDecimalsArgs,
+  SyncPoolsArgs,
 } from './dex.types.js';
 
 // Cache
 const POOLS_MAP: Record<string, PoolInfo> = {};
 
-const COINS_MAP: Record<string, CoinInfo> = {};
+const COINS_MAP: Record<string, CoinInfo> = { ...coinsMap };
+
+const commonOptions = { sparse: true };
+export const volOptions = {
+  sparse: true,
+  aggregationConfig: {
+    intervalInMinutes: [60],
+  },
+};
+
+export const tvlByCoin = Gauge.register('tvl_by_coin', commonOptions);
+export const tvlByPool = Gauge.register('tvl_by_pool', commonOptions);
+const volume = Gauge.register('vol', volOptions);
+const volumeByCoin = Gauge.register('vol_by_coin', volOptions);
 
 export const parsePoolEventsTypeArg = (x: string[]) => {
   const arr = x[0].split('Pool')[1].split(', ');
@@ -28,9 +45,12 @@ export const parsePoolEventsTypeArg = (x: string[]) => {
   };
 };
 
-const fetchCoinInfo = async ({ ctx, coinType }: FetchCoinInfoArgs) => {
+const fetchCoinInfo = async ({
+  ctx,
+  coinType,
+}: FetchCoinInfoArgs): Promise<CoinInfo> => {
   try {
-    const { symbol, name, decimals, id }: CoinMetadata =
+    const { symbol, name, decimals }: CoinMetadata =
       await ctx.client.getCoinMetadata({
         coinType,
       });
@@ -39,16 +59,18 @@ const fetchCoinInfo = async ({ ctx, coinType }: FetchCoinInfoArgs) => {
       symbol,
       name,
       decimals,
-      coinMetadataId: id,
       type: coinType,
+      sourceChain: null,
+      bridge: null,
     };
   } catch (e: unknown) {
     return {
       symbol: Coin.getCoinSymbol(coinType),
       name: Coin.getCoinSymbol(coinType),
       decimals: 0,
-      coinMetadataId: null,
       type: coinType,
+      sourceChain: null,
+      bridge: null,
     };
   }
 };
@@ -158,4 +180,42 @@ export const getCoinsFromPoolType = (poolType: string) => {
     coinXType: tokens[1].trim(),
     coinYType: tokens[2].split('>')[0].trim(),
   };
+};
+
+export const recordTradingVolume = async ({
+  ctx,
+  poolInfo,
+  valueY,
+  valueX,
+}: RecordTradingVolumeArgs) => {
+  const coinXInfo = await getCoinInfo({ ctx, coinType: poolInfo.coinXType });
+  const coinYInfo = await getCoinInfo({ ctx, coinType: poolInfo.coinYType });
+
+  const bridgeX: { bridge: string } | object = coinXInfo.bridge
+    ? { bridge: coinXInfo.bridge as string }
+    : {};
+  const bridgeY: { bridge: string } | object = coinYInfo.bridge
+    ? { bridge: coinYInfo.bridge as string }
+    : {};
+
+  volume.record(ctx, valueX + valueY, {
+    pair: poolInfo.name,
+    ...bridgeX,
+  });
+
+  if (valueX) {
+    volumeByCoin.record(ctx, valueX, {
+      coin: coinXInfo.symbol,
+      type: coinXInfo.type,
+      ...bridgeX,
+    });
+
+    if (valueY) {
+      volumeByCoin.record(ctx, valueY, {
+        coin: coinYInfo.symbol,
+        type: coinYInfo.type,
+        ...bridgeY,
+      });
+    }
+  }
 };

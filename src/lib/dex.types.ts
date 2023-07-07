@@ -1,5 +1,7 @@
 import { SuiAddress, SuiContext, SuiObjectContext } from '@sentio/sdk/sui';
 
+import { SelfTemplate } from '../processor.types.js';
+
 export interface PoolInfo {
   symbolX: string;
   symbolY: string;
@@ -12,12 +14,28 @@ export interface PoolInfo {
   name: string;
 }
 
+export enum Bridge {
+  Celer = 'Celer',
+  Wormhole = 'Wormhole',
+}
+
+export enum Chain {
+  ETH = 'ETH',
+  BSC = 'BSC',
+  FTM = 'FTM',
+  AVAX = 'AVAX',
+  CELO = 'CELO',
+  SOLANA = 'SOLANA',
+  POLYGON = 'POLYGON',
+}
+
 export interface CoinInfo {
   symbol: string;
   name: string;
   decimals: number;
-  coinMetadataId: null | SuiAddress;
   type: string;
+  bridge: null | Bridge;
+  sourceChain: Chain | null;
 }
 
 export interface RegisterPoolArgs {
@@ -53,4 +71,16 @@ export interface GetPoolBalancesArgs {
 export interface RemoveDecimalsArgs {
   value: bigint;
   coinInfo: CoinInfo;
+}
+
+export interface RecordTradingVolumeArgs {
+  ctx: SuiContext | SuiObjectContext;
+  poolInfo: PoolInfo;
+  valueX: number;
+  valueY: number;
+}
+
+export interface SyncPoolsArgs {
+  ctx: SuiContext | SuiObjectContext;
+  resources: SelfTemplate;
 }
