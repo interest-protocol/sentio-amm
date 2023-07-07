@@ -1,0 +1,40 @@
+{
+  "name": "interest-protocol-dex",
+  "private": true,
+  "version": "1.0.0",
+  "type":"module",
+  "scripts": {
+    "test": "sentio test",
+    "gen": "sentio gen",
+    "build": "sentio build",
+    "upload": "sentio upload",
+    "postinstall": "sentio gen",
+    "format": "prettier --write **/*.{js,ts}",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@mysten/sui.js": "^0.37.1",
+    "@sentio/sdk": "^2.21.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.4.4",
+    "@commitlint/config-conventional": "^17.4.4",
+    "@sentio/cli": "^2.9.3",
+    "@types/jest": "^29.4.0",
+    "@types/node": "^18.14.6",
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "eslint": "^8.35.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "eslint-plugin-unicorn": "^46.0.0",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.4",
+    "rimraf": "^4.3.1",
+    "ts-jest": "^29.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.3"
+  }
+}
