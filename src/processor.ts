@@ -12,6 +12,7 @@ import {
   getPoolBalances,
   parsePoolEventsTypeArg,
   registerPool,
+  removeDecimals,
 } from './lib/index.js';
 import {
   AddLiquidityEventDecodedData,
@@ -53,18 +54,18 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
         coinType: poolInfo.coinYType,
       });
 
-      const balanceX = +self.fields.balance_x;
-      const balanceY = +self.fields.balance_y;
+      const balanceX = self.fields.balance_x;
+      const balanceY = self.fields.balance_y;
 
-      const coinXAmount =
-        coinInfoX.decimals > 0
-          ? balanceX / Math.pow(10, coinInfoX.decimals)
-          : balanceX;
+      const coinXAmount = removeDecimals({
+        value: BigInt(balanceX),
+        coinInfo: coinInfoX,
+      });
 
-      const coinYAmount =
-        coinInfoY.decimals > 0
-          ? balanceY / Math.pow(10, coinInfoY.decimals)
-          : balanceY;
+      const coinYAmount = removeDecimals({
+        value: BigInt(balanceY),
+        coinInfo: coinInfoY,
+      });
 
       ctx.meter.Gauge('reservesX').record(coinXAmount, {
         poolName: poolInfo.name,
@@ -178,30 +179,35 @@ core
     const coinInfoX = await getCoinInfo({ ctx, coinType: coinXType });
     const coinInfoY = await getCoinInfo({ ctx, coinType: coinYType });
 
-    const coinXAmount =
-      coinInfoX.decimals > 0
-        ? Number(coin_x_amount) / Math.pow(10, coinInfoX.decimals)
-        : Number(coin_x_amount);
+    const coinXAmount = removeDecimals({
+      value: coin_x_amount,
+      coinInfo: coinInfoX,
+    });
 
-    const coinYAmount =
-      coinInfoY.decimals > 0
-        ? Number(coin_y_amount) / Math.pow(10, coinInfoY.decimals)
-        : Number(coin_y_amount);
+    const coinYAmount = removeDecimals({
+      value: coin_y_amount,
+      coinInfo: coinInfoY,
+    });
 
     const [valueX, valueY] = await calculateAmountsInUSD({
       poolId,
       date: ctx.timestamp,
     });
 
-    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+    const { balanceX, balanceY } = await getPoolBalances({
+      ctx,
+      poolId,
+      coinInfoX,
+      coinInfoY,
+    });
 
     const totalXValue = valueX
       ? valueX * coinXAmount
-      : Number(balanceY / balanceX) * coinXAmount * valueY;
+      : (balanceY / balanceX) * coinXAmount * valueY;
 
     const totalYValue = valueY
       ? valueY * coinYAmount
-      : Number(balanceX / balanceY) * coinYAmount * valueX;
+      : (balanceX / balanceY) * coinYAmount * valueX;
 
     const totalUSDValueAdded = totalXValue + totalYValue;
 
@@ -253,30 +259,35 @@ core
     const coinInfoX = await getCoinInfo({ ctx, coinType: coinXType });
     const coinInfoY = await getCoinInfo({ ctx, coinType: coinYType });
 
-    const coinXAmount =
-      coinInfoX.decimals > 0
-        ? Number(coin_x_out) / Math.pow(10, coinInfoX.decimals)
-        : Number(coin_x_out);
+    const coinXAmount = removeDecimals({
+      value: coin_x_out,
+      coinInfo: coinInfoX,
+    });
 
-    const coinYAmount =
-      coinInfoY.decimals > 0
-        ? Number(coin_y_out) / Math.pow(10, coinInfoY.decimals)
-        : Number(coin_y_out);
+    const coinYAmount = removeDecimals({
+      value: coin_y_out,
+      coinInfo: coinInfoY,
+    });
 
     const [valueX, valueY] = await calculateAmountsInUSD({
       poolId,
       date: ctx.timestamp,
     });
 
-    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+    const { balanceX, balanceY } = await getPoolBalances({
+      ctx,
+      poolId,
+      coinInfoX,
+      coinInfoY,
+    });
 
     const totalXValue = valueX
       ? valueX * coinXAmount
-      : Number(balanceY / balanceX) * coinXAmount * valueY;
+      : (balanceY / balanceX) * coinXAmount * valueY;
 
     const totalYValue = valueY
       ? valueY * coinYAmount
-      : Number(balanceX / balanceY) * coinYAmount * valueX;
+      : (balanceX / balanceY) * coinYAmount * valueX;
 
     const totalUSDValueAdded = totalXValue + totalYValue;
 
@@ -338,7 +349,12 @@ core
       date: ctx.timestamp,
     });
 
-    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+    const { balanceX, balanceY } = await getPoolBalances({
+      ctx,
+      poolId,
+      coinInfoX,
+      coinInfoY,
+    });
 
     const totalXValue = valueX
       ? valueX * coinXAmount
@@ -414,7 +430,12 @@ core
       date: ctx.timestamp,
     });
 
-    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+    const { balanceX, balanceY } = await getPoolBalances({
+      ctx,
+      poolId,
+      coinInfoX,
+      coinInfoY,
+    });
 
     const totalXValue = valueX
       ? valueX * coinXAmount

@@ -10,6 +10,7 @@ import {
   GetPoolBalancesArgs,
   PoolInfo,
   RegisterPoolArgs,
+  RemoveDecimalsArgs,
 } from './dex.types.js';
 
 // Cache
@@ -119,7 +120,18 @@ export async function calculateAmountsInUSD({
   return [coinXPrice || 0, coinYPrice || 0];
 }
 
-export const getPoolBalances = async ({ ctx, poolId }: GetPoolBalancesArgs) => {
+export const removeDecimals = ({ value, coinInfo }: RemoveDecimalsArgs) => {
+  return coinInfo.decimals > 0
+    ? Number(value) / Math.pow(10, coinInfo.decimals)
+    : Number(value);
+};
+
+export const getPoolBalances = async ({
+  ctx,
+  poolId,
+  coinInfoY,
+  coinInfoX,
+}: GetPoolBalancesArgs) => {
   const obj: SuiObjectResponse = await ctx.client.getObject({
     id: poolId,
     options: { showType: true, showContent: true },
@@ -133,8 +145,8 @@ export const getPoolBalances = async ({ ctx, poolId }: GetPoolBalancesArgs) => {
   );
 
   return {
-    balanceX,
-    balanceY,
+    balanceX: removeDecimals({ value: balanceX, coinInfo: coinInfoX }),
+    balanceY: removeDecimals({ value: balanceY, coinInfo: coinInfoY }),
   };
 };
 

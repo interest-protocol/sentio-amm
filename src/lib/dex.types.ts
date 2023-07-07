@@ -46,4 +46,11 @@ export interface CalculateAmountsInUSD {
 export interface GetPoolBalancesArgs {
   ctx: SuiContext | SuiObjectContext;
   poolId: string;
+  coinInfoX: CoinInfo;
+  coinInfoY: CoinInfo;
+}
+
+export interface RemoveDecimalsArgs {
+  value: bigint;
+  coinInfo: CoinInfo;
 }
