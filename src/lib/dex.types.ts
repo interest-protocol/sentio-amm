@@ -39,14 +39,11 @@ export interface FetchCoinInfoArgs {
 }
 
 export interface CalculateAmountsInUSD {
-  ctx: SuiContext | SuiObjectContext;
-  poolId: string;
-  amountX: number;
-  amountY: number;
   date: Date;
+  poolId: string;
 }
 
-export interface GetPoolFromIdArgs {
+export interface GetPoolBalancesArgs {
   ctx: SuiContext | SuiObjectContext;
   poolId: string;
 }

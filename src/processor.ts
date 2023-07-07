@@ -8,7 +8,8 @@ import {
 import {
   calculateAmountsInUSD,
   getCoinInfo,
-  getPoolFromId,
+  getCoinsFromPoolType,
+  getPoolBalances,
   parsePoolEventsTypeArg,
   registerPool,
 } from './lib/index.js';
@@ -16,21 +17,29 @@ import {
   AddLiquidityEventDecodedData,
   PoolCreatedEventDecodedData,
   RemoveLiquidityEventDecodedData,
+  SelfTemplate,
   SwapTokenXEventDecodedData,
   SwapTokenYEventDecodedData,
 } from './processor.types.js';
 import { core } from './types/sui/dex.js';
 
 const template = new SuiObjectProcessorTemplate().onTimeInterval(
-  async (_, __, ctx) => {
-    if (!self || POOLS_TVL_BLACK_LIST.includes(ctx.objectId)) {
+  async (self: SelfTemplate, __, ctx) => {
+    if (!self || POOLS_TVL_BLACK_LIST.includes(ctx.objectId) || !self.fields) {
       return;
     }
     try {
       const poolId = ctx.objectId;
 
-      const { poolInfo, balanceX, balanceY } = await getPoolFromId({
+      const { coinXType, coinYType } = getCoinsFromPoolType(self.type);
+
+      const isStable = self.type.includes('Stable');
+
+      const poolInfo = await registerPool({
         ctx,
+        coinXType,
+        coinYType,
+        isStable,
         poolId,
       });
 
@@ -38,20 +47,24 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
         ctx,
         coinType: poolInfo.coinXType,
       });
+
       const coinInfoY = await getCoinInfo({
         ctx,
         coinType: poolInfo.coinYType,
       });
 
+      const balanceX = +self.fields.balance_x;
+      const balanceY = +self.fields.balance_y;
+
       const coinXAmount =
         coinInfoX.decimals > 0
-          ? Number(balanceX) / Math.pow(10, coinInfoX.decimals)
-          : Number(balanceX);
+          ? balanceX / Math.pow(10, coinInfoX.decimals)
+          : balanceX;
 
       const coinYAmount =
         coinInfoY.decimals > 0
-          ? Number(balanceY) / Math.pow(10, coinInfoY.decimals)
-          : Number(balanceY);
+          ? balanceY / Math.pow(10, coinInfoY.decimals)
+          : balanceY;
 
       ctx.meter.Gauge('reservesX').record(coinXAmount, {
         poolName: poolInfo.name,
@@ -70,14 +83,16 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
       });
 
       const [valueX, valueY] = await calculateAmountsInUSD({
-        ctx,
         poolId,
-        amountX: coinXAmount,
-        amountY: coinYAmount,
         date: ctx.timestamp,
       });
 
-      ctx.meter.Gauge('TVL').record(valueX + valueY, {
+      if (!valueX && !valueY) return;
+
+      const totalValueX = valueX ? coinXAmount * valueX : coinYAmount * valueY;
+      const totalValueY = valueY ? coinYAmount * valueY : coinXAmount * valueX;
+
+      ctx.meter.Gauge('TVL').record(totalValueX + totalValueY, {
         poolName: poolInfo.name,
         poolId: poolInfo.poolId,
         project: PROJECT_NAME,
@@ -174,14 +189,21 @@ core
         : Number(coin_y_amount);
 
     const [valueX, valueY] = await calculateAmountsInUSD({
-      ctx,
       poolId,
-      amountX: coinXAmount,
-      amountY: coinYAmount,
       date: ctx.timestamp,
     });
 
-    const totalUSDValueAdded = valueX + valueY;
+    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+
+    const totalXValue = valueX
+      ? valueX * coinXAmount
+      : Number(balanceY / balanceX) * coinXAmount * valueY;
+
+    const totalYValue = valueY
+      ? valueY * coinYAmount
+      : Number(balanceX / balanceY) * coinYAmount * valueX;
+
+    const totalUSDValueAdded = totalXValue + totalYValue;
 
     ctx.eventLogger.emit('AddLiquidityEvent', {
       distinctId: sender,
@@ -242,14 +264,21 @@ core
         : Number(coin_y_out);
 
     const [valueX, valueY] = await calculateAmountsInUSD({
-      ctx,
       poolId,
-      amountX: coinXAmount,
-      amountY: coinYAmount,
       date: ctx.timestamp,
     });
 
-    const totalUSDValueAdded = valueX + valueY;
+    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+
+    const totalXValue = valueX
+      ? valueX * coinXAmount
+      : Number(balanceY / balanceX) * coinXAmount * valueY;
+
+    const totalYValue = valueY
+      ? valueY * coinYAmount
+      : Number(balanceX / balanceY) * coinYAmount * valueX;
+
+    const totalUSDValueAdded = totalXValue + totalYValue;
 
     ctx.eventLogger.emit('RemoveLiquidityEvent', {
       distinctId: sender,
@@ -305,14 +334,21 @@ core
         : Number(coin_y_out);
 
     const [valueX, valueY] = await calculateAmountsInUSD({
-      ctx,
       poolId,
-      amountX: coinXAmount,
-      amountY: coinYAmount,
       date: ctx.timestamp,
     });
 
-    const swappedValue = valueX > valueY ? valueX : valueY;
+    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+
+    const totalXValue = valueX
+      ? valueX * coinXAmount
+      : Number(balanceY / balanceX) * coinXAmount * valueY;
+
+    const totalYValue = valueY
+      ? valueY * coinYAmount
+      : Number(balanceX / balanceY) * coinYAmount * valueX;
+
+    const swappedValue = totalXValue > totalYValue ? totalXValue : totalYValue;
 
     ctx.eventLogger.emit('SwapEvent', {
       distinctId: sender,
@@ -374,14 +410,21 @@ core
         : Number(coin_y_in);
 
     const [valueX, valueY] = await calculateAmountsInUSD({
-      ctx,
       poolId,
-      amountX: coinXAmount,
-      amountY: coinYAmount,
       date: ctx.timestamp,
     });
 
-    const swappedValue = valueX > valueY ? valueX : valueY;
+    const { balanceX, balanceY } = await getPoolBalances({ ctx, poolId });
+
+    const totalXValue = valueX
+      ? valueX * coinXAmount
+      : Number(balanceY / balanceX) * coinXAmount * valueY;
+
+    const totalYValue = valueY
+      ? valueY * coinYAmount
+      : Number(balanceX / balanceY) * coinYAmount * valueX;
+
+    const swappedValue = totalXValue > totalYValue ? totalXValue : totalYValue;
 
     ctx.eventLogger.emit('SwapEvent', {
       distinctId: sender,

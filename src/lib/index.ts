@@ -7,7 +7,7 @@ import {
   CoinInfo,
   FetchCoinInfoArgs,
   GetCoinInfoArgs,
-  GetPoolFromIdArgs,
+  GetPoolBalancesArgs,
   PoolInfo,
   RegisterPoolArgs,
 } from './dex.types.js';
@@ -100,9 +100,6 @@ export const registerPool = async ({
 };
 
 export async function calculateAmountsInUSD({
-  ctx,
-  amountX,
-  amountY,
   poolId,
   date,
 }: CalculateAmountsInUSD): Promise<[number, number]> {
@@ -119,67 +116,34 @@ export async function calculateAmountsInUSD({
     date,
   );
 
+  return [coinXPrice || 0, coinYPrice || 0];
+}
+
+export const getPoolBalances = async ({ ctx, poolId }: GetPoolBalancesArgs) => {
   const obj: SuiObjectResponse = await ctx.client.getObject({
     id: poolId,
     options: { showType: true, showContent: true },
   });
 
-  console.log(obj);
-  console.log(poolInfo);
-  console.log(coinXPrice);
-  console.log(coinYPrice);
+  const balanceX = BigInt(
+    (obj?.data?.content.fields.balance_x as string) || '0',
+  );
+  const balanceY = BigInt(
+    (obj?.data?.content.fields.balance_y as string) || '0',
+  );
 
-  const balanceX = Number(obj?.data?.content.fields.balance_x);
-  const balanceY = Number(obj?.data?.content.fields.balance_y);
+  return {
+    balanceX,
+    balanceY,
+  };
+};
 
-  if (!coinYPrice && !coinXPrice) return [0, 0];
-
-  const valueX = coinXPrice
-    ? coinXPrice * amountX
-    : (balanceY / balanceX) * amountX * (coinYPrice || 0);
-
-  const valueY = coinYPrice
-    ? coinYPrice * amountY
-    : (balanceX / balanceY) * amountY * (coinXPrice || 0);
-
-  return [valueX, valueY];
-}
-
-const getCoinsFromPoolType = (poolType: string) => {
+export const getCoinsFromPoolType = (poolType: string) => {
   const type = poolType.split('Pool');
   const poolArgs = type[1];
   const tokens = poolArgs.split(',');
   return {
     coinXType: tokens[1].trim(),
     coinYType: tokens[2].split('>')[0].trim(),
-  };
-};
-
-export const getPoolFromId = async ({ ctx, poolId }: GetPoolFromIdArgs) => {
-  const data: SuiObjectResponse = await ctx.client.getObject({
-    id: poolId,
-    options: { showContent: true, showType: true },
-  });
-
-  const poolType = data.data.type as string;
-
-  const isStable = poolType.includes('Stable');
-
-  const { coinXType, coinYType } = getCoinsFromPoolType(poolType);
-
-  const poolInfo = POOLS_MAP[poolId]
-    ? POOLS_MAP[poolId]
-    : await registerPool({
-        ctx,
-        coinXType,
-        coinYType,
-        isStable,
-        poolId,
-      });
-
-  return {
-    poolInfo,
-    balanceX: data?.data?.content?.fields?.balance_x as string,
-    balanceY: data?.data?.content?.fields?.balance_y as string,
   };
 };

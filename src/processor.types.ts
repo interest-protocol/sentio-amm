@@ -35,3 +35,19 @@ export interface SwapTokenYEventDecodedData {
   coin_y_in: bigint;
   coin_x_out: bigint;
 }
+
+interface Fields {
+  balance_x: string;
+  balance_x_cumulative_last: string;
+  balance_y: string;
+  balance_y_cumulative_last: string;
+  decimals_x: string;
+  decimals_y: string;
+}
+
+export interface SelfTemplate {
+  dataType: string;
+  fields: Fields;
+  hasPublicTransfer: boolean;
+  type: string;
+}
