@@ -42,16 +42,14 @@ const fetchCoinInfo = async ({ ctx, coinType }: FetchCoinInfoArgs) => {
       type: coinType,
     };
   } catch (e: unknown) {
-    console.log(`${(e as Error)?.message} get coin metadata error ${coinType}`);
+    return {
+      symbol: Coin.getCoinSymbol(coinType),
+      name: Coin.getCoinSymbol(coinType),
+      decimals: 0,
+      coinMetadataId: null,
+      type: coinType,
+    };
   }
-
-  return {
-    symbol: Coin.getCoinSymbol(coinType),
-    name: Coin.getCoinSymbol(coinType),
-    decimals: 0,
-    coinMetadataId: null,
-    type: coinType,
-  };
 };
 
 export const getCoinInfo = async ({
@@ -125,6 +123,11 @@ export async function calculateAmountsInUSD({
     id: poolId,
     options: { showType: true, showContent: true },
   });
+
+  console.log(obj);
+  console.log(poolInfo);
+  console.log(coinXPrice);
+  console.log(coinYPrice);
 
   const balanceX = Number(obj?.data?.content.fields.balance_x);
   const balanceY = Number(obj?.data?.content.fields.balance_y);

@@ -1,6 +1,10 @@
 import { SuiNetwork, SuiObjectProcessorTemplate } from '@sentio/sdk/sui';
 
-import { DEX_PACKAGE_ID, PROJECT_NAME } from './constants.js';
+import {
+  DEX_PACKAGE_ID,
+  POOLS_TVL_BLACK_LIST,
+  PROJECT_NAME,
+} from './constants.js';
 import {
   calculateAmountsInUSD,
   getCoinInfo,
@@ -19,6 +23,9 @@ import { core } from './types/sui/dex.js';
 
 const template = new SuiObjectProcessorTemplate().onTimeInterval(
   async (_, __, ctx) => {
+    if (!self || POOLS_TVL_BLACK_LIST.includes(ctx.objectId)) {
+      return;
+    }
     try {
       const poolId = ctx.objectId;
 
