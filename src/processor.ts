@@ -89,18 +89,6 @@ const template = new SuiObjectProcessorTemplate().onTimeInterval(
 
       if (!valueX && !valueY) return;
 
-      if (
-        ctx.objectId ===
-        '0x85e87655a47628098b5fc2e62d4926c6384e0430f2eae60cf9c692562b688702'
-      ) {
-        console.log({
-          coinXAmount,
-          coinYAmount,
-          valueX,
-          valueY,
-        });
-      }
-
       const totalValueX = valueX ? coinXAmount * valueX : coinYAmount * valueY;
       const totalValueY = valueY ? coinYAmount * valueY : coinXAmount * valueX;
 

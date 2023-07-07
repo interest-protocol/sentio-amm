@@ -78,7 +78,7 @@ export const registerPool = async ({
   ]);
 
   COINS_MAP[coinXType] = coinInfoX;
-  COINS_MAP[coinXType] = coinInfoY;
+  COINS_MAP[coinYType] = coinInfoY;
 
   const poolInfo = {
     coinYType,
