@@ -39,7 +39,7 @@ export const parsePoolEventsTypeArg = (x: string[]) => {
   const arr = x[0].split('Pool')[1].split(', ');
 
   return {
-    isStable: !arr[0].includes('Volatile'),
+    isStable: x[0].includes('Stable'),
     coinXType: arr[1],
     coinYType: arr[2].slice(0, arr[2].length - 1),
   };
