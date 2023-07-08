@@ -156,6 +156,8 @@ core
       coin_y_amount,
     } = event.data_decoded as AddLiquidityEventDecodedData;
 
+    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
+
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
       event.type_arguments,
     );
@@ -225,6 +227,8 @@ core
       coin_y_out,
       coin_x_out,
     } = event.data_decoded as RemoveLiquidityEventDecodedData;
+
+    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
 
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
       event.type_arguments,
@@ -296,6 +300,8 @@ core
       coin_x_in,
     } = event.data_decoded as SwapTokenXEventDecodedData;
 
+    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
+
     const [curve_type, coinXType, coinYType] = event.type_arguments;
 
     const poolInfo = await registerPool({
@@ -365,6 +371,8 @@ core
       coin_y_in,
       coin_x_out,
     } = event.data_decoded as SwapTokenYEventDecodedData;
+
+    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
 
     const [curve_type, coinXType, coinYType] = event.type_arguments;
 
