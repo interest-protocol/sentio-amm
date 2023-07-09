@@ -1,6 +1,6 @@
 import { SuiNetwork, SuiObjectProcessorTemplate } from '@sentio/sdk/sui';
 
-import { DEX_PACKAGE_ID, POOLS_TVL_BLACK_LIST } from './constants.js';
+import { DEX_PACKAGE_ID, WHITELISTED_POOLS } from './constants.js';
 import {
   calculateAmountsInUSD,
   getCoinInfo,
@@ -25,7 +25,7 @@ import { core } from './types/sui/dex.js';
 
 const template = new SuiObjectProcessorTemplate().onTimeInterval(
   async (self: SelfTemplate, __, ctx) => {
-    if (!self || POOLS_TVL_BLACK_LIST.includes(ctx.objectId) || !self.fields) {
+    if (!self || !WHITELISTED_POOLS[ctx.objectId] || !self.fields) {
       return;
     }
     try {
@@ -156,8 +156,6 @@ core
       coin_y_amount,
     } = event.data_decoded as AddLiquidityEventDecodedData;
 
-    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
-
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
       event.type_arguments,
     );
@@ -213,6 +211,8 @@ core
       message: `Add USD$${totalUSDValueAdded} Liquidity in ${poolInfo.name}`,
     });
 
+    if (!WHITELISTED_POOLS[poolId]) return;
+
     ctx.meter.Gauge('add_liquidity').record(totalUSDValueAdded, {
       pair: poolInfo.name,
       poolId: poolInfo.poolId,
@@ -227,8 +227,6 @@ core
       coin_y_out,
       coin_x_out,
     } = event.data_decoded as RemoveLiquidityEventDecodedData;
-
-    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
 
     const { coinXType, coinYType, isStable } = parsePoolEventsTypeArg(
       event.type_arguments,
@@ -285,6 +283,8 @@ core
       message: `Remove $${totalUSDValueAdded} Liquidity in ${poolInfo.name}`,
     });
 
+    if (!WHITELISTED_POOLS[poolId]) return;
+
     ctx.meter.Gauge('remove_liquidity').record(totalUSDValueAdded, {
       poolName: poolInfo.name,
       poolId: poolInfo.poolId,
@@ -299,8 +299,6 @@ core
       coin_y_out,
       coin_x_in,
     } = event.data_decoded as SwapTokenXEventDecodedData;
-
-    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
 
     const [curve_type, coinXType, coinYType] = event.type_arguments;
 
@@ -355,6 +353,8 @@ core
       message: `Swapped ${coinXAmount} ${coinInfoX.symbol} ->  ${coinYAmount} ${coinInfoY.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
 
+    if (!WHITELISTED_POOLS[poolId]) return;
+
     await recordTradingVolume({
       ctx,
       valueX: totalXValue,
@@ -371,8 +371,6 @@ core
       coin_y_in,
       coin_x_out,
     } = event.data_decoded as SwapTokenYEventDecodedData;
-
-    if (POOLS_TVL_BLACK_LIST.includes(poolId)) return;
 
     const [curve_type, coinXType, coinYType] = event.type_arguments;
 
@@ -426,6 +424,8 @@ core
       pair: poolInfo.name,
       message: `Swapped ${coinYAmount} ${coinInfoY.symbol} ->  ${coinXAmount} ${coinInfoX.symbol}. USD value ${swappedValue} in ${poolInfo.name}`,
     });
+
+    if (!WHITELISTED_POOLS[poolId]) return;
 
     await recordTradingVolume({
       ctx,
