@@ -3,7 +3,7 @@ import { Gauge } from '@sentio/sdk';
 import { SuiNetwork } from '@sentio/sdk/sui';
 import { getPriceByType } from '@sentio/sdk/utils';
 
-import { COINS_MAP as coinsMap } from './coins.js';
+import { COINS_MAP as coinsMap, PRICE_MAP } from './coins.js';
 import {
   CalculateAmountsInUSD,
   CoinInfo,
@@ -14,7 +14,6 @@ import {
   RecordTradingVolumeArgs,
   RegisterPoolArgs,
   RemoveDecimalsArgs,
-  SyncPoolsArgs,
 } from './dex.types.js';
 
 // Cache
@@ -130,12 +129,13 @@ export async function calculateAmountsInUSD({
 
   const coinXPrice = await getPriceByType(
     SuiNetwork.MAIN_NET,
-    poolInfo.coinXType,
+    PRICE_MAP[poolInfo.coinXType],
     date,
   );
+
   const coinYPrice = await getPriceByType(
     SuiNetwork.MAIN_NET,
-    poolInfo.coinYType,
+    PRICE_MAP[poolInfo.coinYType],
     date,
   );
 

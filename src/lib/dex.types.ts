@@ -1,6 +1,4 @@
-import { SuiAddress, SuiContext, SuiObjectContext } from '@sentio/sdk/sui';
-
-import { SelfTemplate } from '../processor.types.js';
+import { SuiContext, SuiObjectContext } from '@sentio/sdk/sui';
 
 export interface PoolInfo {
   symbolX: string;
@@ -78,9 +76,4 @@ export interface RecordTradingVolumeArgs {
   poolInfo: PoolInfo;
   valueX: number;
   valueY: number;
-}
-
-export interface SyncPoolsArgs {
-  ctx: SuiContext | SuiObjectContext;
-  resources: SelfTemplate;
 }

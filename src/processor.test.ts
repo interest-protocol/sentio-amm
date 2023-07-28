@@ -1,7 +1,5 @@
 import { TestProcessorServer } from '@sentio/sdk/testing';
 
-import { SUI_CREATE_POOL_TX } from './tx-constants.js';
-
 describe('Test Processor', () => {
   const service = new TestProcessorServer(() => import('./processor.js'));
 

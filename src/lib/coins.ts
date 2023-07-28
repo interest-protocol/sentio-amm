@@ -36,6 +36,14 @@ const COINS = {
     '0xbcbbd5c23edf35fc279e21ebc129a1187dbfa5b086c63a8e7ff202865888b27b::coin::COIN',
   BSC_WORMHOLE_DOGE:
     '0xd399b358bd0e835000f6caa8c771a7d186499b6e62d413c2fd6cfed709689f28::coin::COIN',
+  ETH_CELER_WETH:
+    '0x94e7a8e71830d2b34b3edaa195dc24c45d142584f06fa257b73af753d766e690::celer_weth_coin::CELER_WETH_COIN',
+  ETH_CELER_WBTC:
+    '0x94e7a8e71830d2b34b3edaa195dc24c45d142584f06fa257b73af753d766e690::celer_wbtc_coin::CELER_WBTC_COIN',
+  ETH_CELER_USDC:
+    '0x94e7a8e71830d2b34b3edaa195dc24c45d142584f06fa257b73af753d766e690::celer_usdc_coin::CELER_USDC_COIN',
+  ETH_CELER_USDT:
+    '0x94e7a8e71830d2b34b3edaa195dc24c45d142584f06fa257b73af753d766e690::celer_usdt_coin::CELER_USDT_COIN',
 };
 
 export const COINS_MAP = {
@@ -56,7 +64,7 @@ export const COINS_MAP = {
   },
   [COINS.ETH_WORMHOLE_USDC]: {
     decimals: 6,
-    symbol: 'USDC',
+    symbol: 'USDCeth',
     type: COINS.ETH_WORMHOLE_USDC,
     name: 'USD Coin',
     bridge: Bridge.Wormhole,
@@ -64,7 +72,7 @@ export const COINS_MAP = {
   },
   [COINS.ETH_WORMHOLE_USDT]: {
     decimals: 6,
-    symbol: 'USDT',
+    symbol: 'USDTeth',
     type: COINS.ETH_WORMHOLE_USDT,
     name: 'USD Tether',
     bridge: Bridge.Wormhole,
@@ -89,7 +97,7 @@ export const COINS_MAP = {
   [COINS.NATIVE_WORMHOLE_WAVAX]: {
     decimals: 8,
     symbol: 'WAVAX',
-    type: COINS.NATIVE_WORMHOLE_SOL,
+    type: COINS.NATIVE_WORMHOLE_WAVAX,
     name: 'Wrapped AVAX',
     bridge: Bridge.Wormhole,
     sourceChain: Chain.AVAX,
@@ -120,7 +128,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_ADA]: {
     decimals: 8,
-    symbol: 'ADA',
+    symbol: 'ADAbnb',
     type: COINS.BSC_WORMHOLE_ADA,
     name: 'Cardano',
     bridge: Bridge.Wormhole,
@@ -128,7 +136,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_BTCB]: {
     decimals: 8,
-    symbol: 'WBTCB',
+    symbol: 'WBTCBbnb',
     type: COINS.BSC_WORMHOLE_BTCB,
     name: 'Wrapped Bitcoin Binance',
     bridge: Bridge.Wormhole,
@@ -136,7 +144,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_USDC]: {
     decimals: 8,
-    symbol: 'USDC',
+    symbol: 'USDCbnb',
     type: COINS.BSC_WORMHOLE_USDC,
     name: 'USD Coin',
     bridge: Bridge.Wormhole,
@@ -144,7 +152,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_USDT]: {
     decimals: 8,
-    symbol: 'USDT',
+    symbol: 'USDTbnb',
     type: COINS.BSC_WORMHOLE_USDT,
     name: 'USD Tether',
     bridge: Bridge.Wormhole,
@@ -152,7 +160,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_ETH]: {
     decimals: 8,
-    symbol: 'WETH',
+    symbol: 'WETHbnb',
     type: COINS.BSC_WORMHOLE_ETH,
     name: 'Wrapped Ether',
     bridge: Bridge.Wormhole,
@@ -160,7 +168,7 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_FLOKI]: {
     decimals: 8,
-    symbol: 'FLOKI',
+    symbol: 'FLOKIbnb',
     type: COINS.BSC_WORMHOLE_FLOKI,
     name: 'FLOKI',
     bridge: Bridge.Wormhole,
@@ -168,10 +176,66 @@ export const COINS_MAP = {
   },
   [COINS.BSC_WORMHOLE_DOGE]: {
     decimals: 8,
-    symbol: 'DOGE',
+    symbol: 'DOGEbnb',
     type: COINS.BSC_WORMHOLE_DOGE,
     name: 'DOGE',
     bridge: Bridge.Wormhole,
     sourceChain: Chain.BSC,
   },
+  [COINS.ETH_CELER_WETH]: {
+    decimals: 9,
+    symbol: 'cWETHeth',
+    type: COINS.ETH_CELER_WETH,
+    name: 'Celer Wrapped Ether',
+    bridge: Bridge.Celer,
+    sourceChain: Chain.ETH,
+  },
+  [COINS.ETH_CELER_WBTC]: {
+    decimals: 8,
+    symbol: 'cWBTCeth',
+    type: COINS.ETH_CELER_WBTC,
+    name: 'Celer Wrapped Bitcoin',
+    bridge: Bridge.Celer,
+    sourceChain: Chain.ETH,
+  },
+  [COINS.ETH_CELER_USDC]: {
+    decimals: 6,
+    symbol: 'cUSDCeth',
+    type: COINS.ETH_CELER_USDC,
+    name: 'Celer USDC',
+    bridge: Bridge.Celer,
+    sourceChain: Chain.ETH,
+  },
+  [COINS.ETH_CELER_USDT]: {
+    decimals: 6,
+    symbol: 'cUSDTeth',
+    type: COINS.ETH_CELER_USDT,
+    name: 'Celer USDT',
+    bridge: Bridge.Celer,
+    sourceChain: Chain.ETH,
+  },
 } as Record<string, CoinInfo>;
+
+export const PRICE_MAP = {
+  [COINS.SUI]: COINS.SUI,
+  [COINS.NATIVE_WORMHOLE_ETH]: COINS.NATIVE_WORMHOLE_ETH,
+  [COINS.ETH_WORMHOLE_USDC]: COINS.ETH_WORMHOLE_USDC,
+  [COINS.ETH_WORMHOLE_USDT]: COINS.ETH_WORMHOLE_USDT,
+  [COINS.NATIVE_WORMHOLE_WBNB]: COINS.NATIVE_WORMHOLE_WBNB,
+  [COINS.NATIVE_WORMHOLE_SOL]: COINS.NATIVE_WORMHOLE_SOL,
+  [COINS.NATIVE_WORMHOLE_WAVAX]: COINS.NATIVE_WORMHOLE_WAVAX,
+  [COINS.NATIVE_WORMHOLE_WFTM]: COINS.NATIVE_WORMHOLE_WFTM,
+  [COINS.NATIVE_WORMHOLE_CELO]: COINS.NATIVE_WORMHOLE_CELO,
+  [COINS.NATIVE_WORMHOLE_WMATIC]: COINS.NATIVE_WORMHOLE_WMATIC,
+  [COINS.BSC_WORMHOLE_ADA]: COINS.BSC_WORMHOLE_ADA,
+  [COINS.BSC_WORMHOLE_BTCB]: COINS.BSC_WORMHOLE_BTCB,
+  [COINS.BSC_WORMHOLE_USDC]: COINS.ETH_WORMHOLE_USDC,
+  [COINS.BSC_WORMHOLE_USDT]: COINS.ETH_WORMHOLE_USDT,
+  [COINS.BSC_WORMHOLE_ETH]: COINS.NATIVE_WORMHOLE_ETH,
+  [COINS.BSC_WORMHOLE_FLOKI]: COINS.BSC_WORMHOLE_FLOKI,
+  [COINS.BSC_WORMHOLE_DOGE]: COINS.BSC_WORMHOLE_DOGE,
+  [COINS.ETH_CELER_WETH]: COINS.NATIVE_WORMHOLE_ETH,
+  [COINS.ETH_CELER_WBTC]: COINS.ETH_CELER_WBTC,
+  [COINS.ETH_CELER_USDC]: COINS.ETH_WORMHOLE_USDC,
+  [COINS.ETH_CELER_USDT]: COINS.ETH_WORMHOLE_USDT,
+};
